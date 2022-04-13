@@ -121,17 +121,17 @@ if __name__ == '__main__':
         cfg = cfg_mos_s
 
     # You need change the file dir to your own dir
-    args.trained_model="./mbv2_widerface/mobilenetv2_epoch_150.pth"
-    args.save_folder='./widerface_evaluate/twiderface_txt_150/'
+    args.trained_model="./test_weights/MOS-M.pth"
+    args.save_folder='./test/'
     testset_folder = './data/widerface/val/images/'
-    testset_list = testset_folder[:-7] + "wider_val.txt"
+    testset_list = testset_folder[:-7] + "wider-val.txt"
 
     net = MOS(cfg=cfg, phase='test')
     net = load_model(net, args.trained_model, True)
     net.eval()
 
     cudnn.benchmark = True
-    device = torch.device("cuda")
+    device = torch.device("cpu")
     net = net.to(device)
 
 

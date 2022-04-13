@@ -7,3 +7,4 @@ venv/
 icon
 MOS-Multi-Task-Face-Detect/
 data/
+.ipynb_checkpoints/

@@ -9,7 +9,6 @@ import torch.nn.functional as F
 import torchvision.transforms as transforms
 import numpy as np
 import time
-import matplotlib.pyplot as plt
 from config import cfg_mos_m,cfg_mos_s
 #from layers.functions.prior_box import PriorBox
 from utils.functions.prior_box import PriorBox
