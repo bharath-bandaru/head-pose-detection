@@ -9,7 +9,7 @@ import torch.nn.functional as F
 import torchvision.transforms as transforms
 import numpy as np
 import time
-from config import cfg_mos_m,cfg_mos_s
+from config import cfg_mos_m, cfg_mos_s
 #from layers.functions.prior_box import PriorBox
 from utils.functions.prior_box import PriorBox
 from utils.nms.py_cpu_nms import py_cpu_nms
@@ -22,15 +22,22 @@ from PIL import Image
 parser = argparse.ArgumentParser(description='Test')
 parser.add_argument('-m', '--trained_model', default='./test_weights/MOS-M.pth',
                     type=str, help='Trained state_dict file path to open')
-parser.add_argument('--network', default='cfg_mos_m', help='Backbone network cfg_mos_m or cfg_mos_s')
-parser.add_argument('--origin_size', default=True, type=str, help='Whether use origin image size to evaluate')
-parser.add_argument('--long_side', default=840, help='when origin_size is false, long_side is scaled size(320 or 640 for long side)')
-parser.add_argument('--cpu', action="store_true", default=True, help='Use cpu inference')
-parser.add_argument('--confidence_threshold', default=0.55, type=float, help='confidence_threshold')
+parser.add_argument('--network', default='cfg_mos_m',
+                    help='Backbone network cfg_mos_m or cfg_mos_s')
+parser.add_argument('--origin_size', default=True, type=str,
+                    help='Whether use origin image size to evaluate')
+parser.add_argument('--long_side', default=840,
+                    help='when origin_size is false, long_side is scaled size(320 or 640 for long side)')
+parser.add_argument('--cpu', action="store_true",
+                    default=True, help='Use cpu inference')
+parser.add_argument('--confidence_threshold', default=0.55,
+                    type=float, help='confidence_threshold')
 parser.add_argument('--top_k', default=5000, type=int, help='top_k')
-parser.add_argument('--nms_threshold', default=0.4, type=float, help='nms_threshold')
+parser.add_argument('--nms_threshold', default=0.4,
+                    type=float, help='nms_threshold')
 parser.add_argument('--keep_top_k', default=750, type=int, help='keep_top_k')
-parser.add_argument('--vis_thres', default=0.55, type=float, help='visualization_threshold')
+parser.add_argument('--vis_thres', default=0.55, type=float,
+                    help='visualization_threshold')
 args = parser.parse_args()
 
 
@@ -50,19 +57,22 @@ def check_keys(model, pretrained_state_dict):
 def remove_prefix(state_dict, prefix):
     ''' Old style model is stored with all names of parameters sharing common prefix 'module.' '''
     print('remove prefix \'{}\''.format(prefix))
-    f = lambda x: x.split(prefix, 1)[-1] if x.startswith(prefix) else x
+    def f(x): return x.split(prefix, 1)[-1] if x.startswith(prefix) else x
     return {f(key): value for key, value in state_dict.items()}
 
 
 def load_model(model, pretrained_path, load_to_cpu):
     print('Loading pretrained model from {}'.format(pretrained_path))
     if load_to_cpu:
-        pretrained_dict = torch.load(pretrained_path, map_location=lambda storage, loc: storage)
+        pretrained_dict = torch.load(
+            pretrained_path, map_location=lambda storage, loc: storage)
     else:
         device = torch.cuda.current_device()
-        pretrained_dict = torch.load(pretrained_path, map_location=lambda storage, loc: storage.cuda(device))
+        pretrained_dict = torch.load(
+            pretrained_path, map_location=lambda storage, loc: storage.cuda(device))
     if "state_dict" in pretrained_dict.keys():
-        pretrained_dict = remove_prefix(pretrained_dict['state_dict'], 'module.')
+        pretrained_dict = remove_prefix(
+            pretrained_dict['state_dict'], 'module.')
     else:
         pretrained_dict = remove_prefix(pretrained_dict, 'module.')
     check_keys(model, pretrained_dict)
@@ -70,8 +80,7 @@ def load_model(model, pretrained_path, load_to_cpu):
     return model
 
 
-
-def draw_axis(img, yaw, pitch, roll, tdx=None, tdy=None, size = 100):
+def draw_axis(img, yaw, pitch, roll, tdx=None, tdy=None, size=100):
 
     pitch = pitch * np.pi / 180
     yaw = -(yaw * np.pi / 180)
@@ -87,20 +96,22 @@ def draw_axis(img, yaw, pitch, roll, tdx=None, tdy=None, size = 100):
 
     # X-Axis pointing to right. drawn in red
     x1 = size * (cos(yaw) * cos(roll)) + tdx
-    y1 = size * (cos(pitch) * sin(roll) + cos(roll) * sin(pitch) * sin(yaw)) + tdy
+    y1 = size * (cos(pitch) * sin(roll) + cos(roll)
+                 * sin(pitch) * sin(yaw)) + tdy
 
     # Y-Axis | drawn in green
     #        v
     x2 = size * (-cos(yaw) * sin(roll)) + tdx
-    y2 = size * (cos(pitch) * cos(roll) - sin(pitch) * sin(yaw) * sin(roll)) + tdy
+    y2 = size * (cos(pitch) * cos(roll) - sin(pitch)
+                 * sin(yaw) * sin(roll)) + tdy
 
     # Z-Axis (out of the screen) drawn in blue
     x3 = size * (sin(yaw)) + tdx
     y3 = size * (-cos(yaw) * sin(pitch)) + tdy
 
-    cv2.line(img, (int(tdx), int(tdy)), (int(x1),int(y1)),(0,0,255),3)
-    cv2.line(img, (int(tdx), int(tdy)), (int(x2),int(y2)),(0,255,0),3)
-    cv2.line(img, (int(tdx), int(tdy)), (int(x3),int(y3)),(255,0,0),4)
+    cv2.line(img, (int(tdx), int(tdy)), (int(x1), int(y1)), (0, 0, 255), 3)
+    cv2.line(img, (int(tdx), int(tdy)), (int(x2), int(y2)), (0, 255, 0), 3)
+    cv2.line(img, (int(tdx), int(tdy)), (int(x3), int(y3)), (255, 0, 0), 4)
 
     return img
 
@@ -125,7 +136,7 @@ if __name__ == '__main__':
     print('Finished loading model!')
     cudnn.benchmark = True
     device = torch.device("cpu")
-    #device=torch.device("cuda")
+    # device=torch.device("cuda")
     net = net.to(device)
 
     image_path = "./figures/4_Dancing_Dancing_4_85.jpg"
@@ -146,13 +157,15 @@ if __name__ == '__main__':
         resize = 1
 
     if resize != 1:
-        img = cv2.resize(img, None, None, fx=resize, fy=resize, interpolation=cv2.INTER_LINEAR)
+        img = cv2.resize(img, None, None, fx=resize, fy=resize,
+                         interpolation=cv2.INTER_LINEAR)
 
     img_rgb = img_raw.copy()
     im_height, im_width, _ = img.shape
     print(im_height, im_width)
 
-    scale = torch.Tensor([img.shape[1], img.shape[0], img.shape[1], img.shape[0]])
+    scale = torch.Tensor(
+        [img.shape[1], img.shape[0], img.shape[1], img.shape[0]])
     img -= (104, 117, 123)
     img = img.transpose(2, 0, 1)
     img = torch.from_numpy(img).unsqueeze(0)
@@ -160,7 +173,8 @@ if __name__ == '__main__':
     scale = scale.to(device)
 
     tic = time.time()
-    loc, conf, landms, head_cls_y, head_cls_p, head_cls_r = net(img)  # forward pass
+    loc, conf, landms, head_cls_y, head_cls_p, head_cls_r = net(
+        img)  # forward pass
     tic1 = time.time() - tic
 
     head_cls_y = head_cls_y.squeeze(0)
@@ -215,7 +229,8 @@ if __name__ == '__main__':
     idx_tensor = np.array(idx_tensor)
 
     # do NMS
-    dets = np.hstack((boxes, scores[:, np.newaxis])).astype(np.float32, copy=False)
+    dets = np.hstack((boxes, scores[:, np.newaxis])).astype(
+        np.float32, copy=False)
     keep = py_cpu_nms(dets, args.nms_threshold)
     dets = dets[keep, :]
     landms = landms[keep]
@@ -240,8 +255,8 @@ if __name__ == '__main__':
         cx = b[0]
         cy = b[1] + 12
 
-
-        text = "yaw:" + str(int(yaw_predicted[i]))  # + "," + "p:" + str(int(pitch_predicted[i])) + "," + "r:" + str(
+        # + "," + "p:" + str(int(pitch_predicted[i])) + "," + "r:" + str(
+        text = "yaw:" + str(int(yaw_predicted[i]))
         # int(roll_predicted[i]))
 
         cv2.putText(img_rgb, text, (cx - 10, cy - 25),
@@ -255,14 +270,6 @@ if __name__ == '__main__':
         draw_axis(img_rgb, int(yaw_predicted[i]), int(pitch_predicted[i]), int(roll_predicted[i]), tdx=b[9],
                   tdy=b[10], size=30)
 
-
-    #cv2.imshow("frame", img_rgb)
-    cv2.imwrite("./figures/result.jpg", img_rgb)
-
-
-
-
-
-
-
-
+    cv2.imshow("frame", img_rgb)
+    cv2.waitKey(0)
+    #cv2.imwrite("./figures/result.jpg", img_rgb)
